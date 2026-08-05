@@ -8,7 +8,7 @@ concurrency:
 on:
   push: # Déclenché lors d'un push
     branches: # Sur la branche spécifiée
-      - main # Branche "main"
+      - master # Branche "main"
 # Description des jobs à exécuter
 jobs:
   # Job pour les tests
