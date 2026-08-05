@@ -103,6 +103,14 @@ jobs:
         needs: [checks_frontend, tests_backend, build_frontend] # Dépend des jobs "checks_frontend", "tests_backend" et "build_frontend"
         runs-on: ubuntu-latest # Exécute sur la dernière version d'Ubuntu
         steps:
+            - name: checkout le code # récupère le code source
+              uses: actions/checkout@v4
+
+            - name: télécharger l'artéfact du frontend # télécharge l'artéfact archivé précédemment
+              uses: actions/download-artifact@v4
+              with:
+                  name: frontend-dist # nom de l'artéfact
+                  path: ./dist # chemin où l'artéfact sera téléchargé
             - name: déclenche le déploiement sur Render # Appelle le Deploy Hook de Render
               run: | # Commandes shell à exécuter
                   curl -f -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"  # Déclenche un nouveau déploiement via l'URL secrète du service Render
