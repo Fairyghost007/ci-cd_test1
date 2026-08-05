@@ -12,7 +12,7 @@ on:
 # Description des jobs à exécuter
 jobs:
     # Job pour les tests
-    tests:
+    tests_backend:
         runs-on: ubuntu-latest # Exécute sur la dernière version d'Ubuntu
         defaults: # Options par défaut pour les étapes
             run:
@@ -41,9 +41,66 @@ jobs:
               uses: codecov/codecov-action@v5
               with:
                   token: ${{ secrets.CODECOV_TOKEN }}
+    checks_frontend: # job pour les vérifications sur le frontend
+        runs-on: ubuntu-latest # environnement d'exécution
+        steps: # les étapes du job
+            - name: checkout le code # récupère le code source
+              uses: actions/checkout@v4
+
+            - name: installer Node.js # installe Node.js
+              uses: actions/setup-node@v3 # utilise l'action setup-node en version 3
+              with:
+                  cache: "npm"
+                  cache-dependency-path: client/package-lock.json # chemin vers le package-lock.json pour le cache
+
+            - name: installer les dépendances # installe les dépendances npm
+              run: |
+                  cd client
+                  npm ci --prefer-offline
+
+            - name: vérifie les vulnérabilités # vérifie les vulnérabilités dans les dépendances
+              run: |
+                  cd client
+                  npm audit
+
+            - name: vérifie le code # vérifie le style du code avec lint
+              run: |
+                  cd client
+                  npm run lint
+
+    build_frontend: # job pour construire le frontend
+        runs-on: ubuntu-latest # environnement d'exécution
+        defaults: # définition des valeurs par défaut pour les étapes
+            run: # définition des valeurs par défaut pour les étapes run
+                working-directory: client # définit le dossier de travail par défaut pour les étapes run
+        needs: [checks_frontend] # dépend du job checks_frontend
+        steps: # les étapes du job
+            - name: checkout le code # récupère le code source
+              uses: actions/checkout@v4
+
+            - name: installer Node.js # installe Node.js
+              uses: actions/setup-node@v3 # utilise l'action setup-node en version 3
+              with:
+                  cache: "npm"
+                  cache-dependency-path: client/package-lock.json # chemin vers le package-lock.json pour le cache
+
+            - name: installer les dépendances # installe les dépendances npm
+              run: |
+                  npm ci --prefer-offline
+
+            - name: build le frontend # construit le frontend
+              run: |
+                  npm run build
+
+            - name: archiver les artefacts # archive le dossier 'dist' pour une utilisation ultérieure
+              uses: actions/upload-artifact@v4
+              with:
+                  name: frontend-dist # nom de l'artéfact
+                  path: client/dist/ # chemin de l'artéfact
+                  retention-days: 1 # durée de rétention de l'artéfact
     # Job pour le déploiement
     deploy:
-        needs: tests # Dépend du job "tests"
+        needs: [checks_frontend, tests_backend, build_frontend] # Dépend des jobs "checks_frontend", "tests_backend" et "build_frontend"
         runs-on: ubuntu-latest # Exécute sur la dernière version d'Ubuntu
         steps:
             - name: déclenche le déploiement sur Render # Appelle le Deploy Hook de Render
